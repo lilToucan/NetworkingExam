@@ -5,11 +5,10 @@
 ALockActor::ALockActor()
 {
 	PrimaryActorTick.bCanEverTick = true;
-	bIsUnlocked = false;
 	bReplicates = true;
 	LockComponent = CreateDefaultSubobject<ULockComponent>(TEXT("KeyComponent"));
-	LockComponent->OnLocked.AddUniqueDynamic(this,&ALockActor::Lock);
-	LockComponent->OnUnlocked.AddUniqueDynamic(this,&ALockActor::Unlock);
+	LockComponent->OnLocked.AddUniqueDynamic(this, &ALockActor::Lock);
+	LockComponent->OnUnlocked.AddUniqueDynamic(this, &ALockActor::Unlock);
 }
 
 void ALockActor::BeginPlay()
@@ -17,18 +16,22 @@ void ALockActor::BeginPlay()
 	Super::BeginPlay();
 }
 
-void ALockActor::Unlock_Implementation()
+void ALockActor::NetMulticast_ChangeLockState_Implementation(bool bIsUnlocked)
 {
-	bIsUnlocked = true;
+	OnLockChangedState(bIsUnlocked);
 }
 
-void ALockActor::Lock_Implementation()
+void ALockActor::OnLockChangedState_Implementation(bool bIsUnlocked)
 {
-	bIsUnlocked = false;
 }
 
-void ALockActor::GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const
+
+void ALockActor::Unlock()
 {
-	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
-	DOREPLIFETIME(ALockActor, bIsUnlocked);
+	NetMulticast_ChangeLockState(true);
+}
+
+void ALockActor::Lock()
+{
+	NetMulticast_ChangeLockState(false);
 }

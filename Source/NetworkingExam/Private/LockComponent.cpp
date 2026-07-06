@@ -15,7 +15,7 @@ void ULockComponent::BeginPlay()
 
 		if (!KeyComp)
 			continue;
-		
+
 		KeyComp->OnKeyUnLock.AddUniqueDynamic(this, &ULockComponent::KeyUnlock);
 		KeyComp->OnKeyLock.AddUniqueDynamic(this, &ULockComponent::KeyLock);
 		NumOfKeys++;
@@ -24,26 +24,35 @@ void ULockComponent::BeginPlay()
 
 void ULockComponent::KeyUnlock(UKeyComponent* Key)
 {
-	if (Key->bHasBeenUsed) // if it has already been activated
+	if (Key->bHasBeenUsed) // if it has already been used to unlock the lock then don't use it again
 		return;
-	
+
 	NumOfKeysUsed++;
-	if (NumOfKeysUsed >= NumOfKeys)
+	Key->bHasBeenUsed = true;
+
+	// if the number of keys used is the same as the keys connected to the lock then Call the OnUnlocked Event
+	if (NumOfKeysUsed >= NumOfKeys) 
 	{
 		OnUnlocked.Broadcast();
-		Key->bHasBeenUsed = true;
 	}
 }
 
 void ULockComponent::KeyLock(UKeyComponent* Key)
 {
-	if (!Key->bHasBeenUsed) // if it hasn't even been activated yet
+
+	if (!Key->bHasBeenUsed) // if the key is already locked then don't lock it again 
 		return;
 	
+	bool bHasLockBeenUnlocked = false; // check if the lock had been unlocked before 
+	if (NumOfKeysUsed >= NumOfKeys)
+		bHasLockBeenUnlocked = true;
+
 	NumOfKeysUsed--;
-	if (NumOfKeysUsed < NumOfKeys)
+	Key->bHasBeenUsed = false; // reset the use of the key so that it can unlock this lock again
+
+	// if the lock has been unlocked before then call the OnLocked event otherwise it's already locked and doesn't need to lock again
+	if (NumOfKeysUsed < NumOfKeys || bHasLockBeenUnlocked == true)
 	{
 		OnLocked.Broadcast();
-		Key->bHasBeenUsed = false;
 	}
 }
